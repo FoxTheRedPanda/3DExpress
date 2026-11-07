@@ -126,31 +126,38 @@ async function addHotItemToCart(index){
   if(!item)return;
   const key="makerworld:"+item.id;
   const existing=cart.find(x=>x.key===key);
+  const safeName=String(item.title||"MakerWorld print").replace(/[&<>"']/g,"");
   if(existing)existing.qty++;
-  else cart.push({key,name:item.title,price:item.price,pic:"🖨️",color:"PLA • single color",qty:1,lead:Math.max(1,Math.ceil(item.printMinutes/1440)+1),makerworldId:String(item.id),hotItem:true});
+  else cart.push({key,name:safeName,price:Number(item.price),pic:"🖨️",color:"PLA • single color",qty:1,lead:Math.max(1,Math.ceil(Number(item.printMinutes||0)/1440)+1),makerworldId:String(item.id),hotItem:true});
   updateCart();openCart();
 }
-function escapeHot(value){return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
-async function loadHotItems(){
- const status=document.getElementById("hot-status"),grid=document.getElementById("hot-grid");
- try{
-  const r=await fetch("/.netlify/functions/makerworld-hot-items");
-  const d=await r.json();
-  if(!r.ok||!Array.isArray(d.models))throw new Error(d.error||"Could not load Hot Items.");
-  window.hotItems=d.models.slice(0,8);
-  grid.innerHTML=window.hotItems.map((m,i)=>{
-   const title=escapeHot(m.title),cover=escapeHot(m.cover),creator=escapeHot(m.creator?.name||m.creator?.handle||"MakerWorld creator");
-   const time=m.printMinutes>=60?(m.printMinutes/60).toFixed(1)+" hr":m.printMinutes+" min";
-   return '<article class="hot-card"><img src="'+cover+'" alt="'+title+'" loading="lazy"><div class="hot-body"><h3>'+title+'</h3><div class="hot-meta">⬇️ '+Number(m.downloads||0).toLocaleString()+' downloads<br>👨‍🎨 '+creator+'<br>⏱️ '+time+' • '+Number(m.weightGrams).toFixed(1)+'g PLA<br>💵 '+(';
-</script>
-</body>
-</html>
-+Number(m.price).toFixed(0))+' • estimated price</div><button class="hot-link" type="button" onclick="addHotItemToCart('+i+')">Order This Print</button></div></article>';
-  }).join("");
-  status.textContent=window.hotItems.length?"Up to 8 eligible X2D PLA prints • Prices include filament, estimated electricity + 50% • Updated "+new Date(d.fetched_at||Date.now()).toLocaleDateString():"No eligible commercial-use X2D PLA models were found this week.";
- }catch(e){status.textContent="Hot Items are temporarily unavailable. Please check back soon.";console.error("MakerWorld feed:",e);}
+function escapeHot(value){
+  return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
-loadHotItems();;
+async function loadHotItems(){
+  const status=document.getElementById("hot-status");
+  const grid=document.getElementById("hot-grid");
+  try{
+    const response=await fetch("/.netlify/functions/makerworld-hot-items");
+    const data=await response.json();
+    if(!response.ok||!Array.isArray(data.models))throw new Error(data.error||"Could not load Hot Items.");
+    window.hotItems=data.models.slice(0,8);
+    grid.innerHTML=window.hotItems.map((model,index)=>{
+      const title=escapeHot(model.title);
+      const cover=escapeHot(model.cover);
+      const creator=escapeHot(model.creator?.name||model.creator?.handle||"MakerWorld creator");
+      const minutes=Number(model.printMinutes||0);
+      const printTime=minutes>=60?(minutes/60).toFixed(1)+" hr":minutes+" min";
+      const price="$"+Number(model.price||0).toFixed(0);
+      return '<article class="hot-card"><img src="'+cover+'" alt="'+title+'" loading="lazy"><div class="hot-body"><h3>'+title+'</h3><div class="hot-meta">⬇️ '+Number(model.downloads||0).toLocaleString()+' downloads<br>👨‍🎨 '+creator+'<br>⏱️ '+printTime+' • '+Number(model.weightGrams||0).toFixed(1)+'g PLA<br>💵 '+price+' • estimated price</div><button class="hot-link" type="button" onclick="addHotItemToCart('+index+')">Order This Print</button></div></article>';
+    }).join("");
+    status.textContent=window.hotItems.length?"Up to 8 eligible X2D PLA prints • Prices include filament, estimated electricity + 50% • Updated "+new Date(data.fetched_at||Date.now()).toLocaleDateString():"No eligible commercial-use X2D PLA models were found this week.";
+  }catch(error){
+    status.textContent="Hot Items are temporarily unavailable. Please check back soon.";
+    console.error("MakerWorld Hot Items:",error);
+  }
+}
+loadHotItems();
 </script>
 </body>
 </html>
