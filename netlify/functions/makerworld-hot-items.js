@@ -22,7 +22,7 @@ const getProfile=(model)=>{
   return printerCode==="N6"&&pla&&Number(p.colors||filaments.length)===1&&grams>0&&seconds>0;
  })||null;
 };
-const licenseAllowed=license=>ALLOWED_LICENSES.has(String(license||"").toUpperCase().replace(/^CC[-_]?/,""));
+const licenseAllowed=license=>ALLOWED_LICENSES.has(String(license||"").toUpperCase().replace(/^CC-/,""));
 const priceFor=(grams,seconds)=>{
  const filament=(grams/1000)*FILAMENT_USD_PER_KG;
  const electricity=(seconds/3600)*X2D_AVERAGE_KW*ELECTRICITY_USD_PER_KWH;
@@ -38,7 +38,7 @@ const modelDetails=async(id,key)=>{
 exports.handler=async()=>{try{
  const key=process.env.APISH_API_KEY;
  if(!key)return json(503,{error:"Hot Items feed is not configured."});
- const data=await api("search",{category:"800",sort:"downloads",created_within_days:"7",printer:"N6",color:"single",license:"CC0,BY,BY-SA",limit:"20"},key);
+ const data=await api("search",{category:"800",sort:"downloads",created_within_days:"7",printer:"N6",color:"single",license:"CC0,BY,BY-SA",limit:"12"},key);
  if(!Array.isArray(data.models))return json(502,{error:"MakerWorld search returned an unexpected response."});
  const eligible=[];
  for(const candidate of data.models){
