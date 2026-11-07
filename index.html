@@ -122,11 +122,3 @@ render();updateCart();updateSchoolBanner();setInterval(updateSchoolBanner,30000)
 </script>
 </body>
 </html>
-+Number(d.amount).toFixed(2)+' '+(d.currency||'USD')):'Payment completed';cart=[];updateCart();document.getElementById('cartModal').classList.remove('open');document.getElementById('confirmation-details').innerHTML='<b>Order number:</b> '+d.id+'<br><b>Total paid:</b> '+paidTotal+'<br><b>Status:</b> COMPLETED';document.getElementById('confirmation-email').textContent=d.emailSent?'A receipt was emailed to the purchaser and Fleet.':(d.emailWarning||'Your order is received. Email receipt setup is pending.');document.getElementById('orderConfirmation').classList.add('open');},onCancel:function(){document.getElementById('paypal-message').textContent='Checkout cancelled. Your cart is saved.';},onError:function(e){document.getElementById('paypal-message').textContent='PayPal error: '+e.message;}}).render('#paypal-button-container');}
-function openMystery(){document.getElementById("mysteryModal").classList.add("open")}function closeMystery(){document.getElementById("mysteryModal").classList.remove("open")}
-function chooseMystery(price){alert("Mystery Box selected: $"+price+" 🎁\nPayment: PayPal Sandbox test.\nWe'll connect this to the real order form next!")}
-document.querySelectorAll(".modal").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)m.classList.remove("open")}));
-render();updateCart();updateSchoolBanner();setInterval(updateSchoolBanner,30000);
-</script>
-</body>
-</html>
