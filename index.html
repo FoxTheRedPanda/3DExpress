@@ -87,7 +87,7 @@ function checkout(){
       const r=await fetch('/.netlify/functions/paypal-create-order',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({cart:cart.map(x=>({name:x.name,qty:x.qty,color:x.color}))})
+        body:JSON.stringify({cart:cart.map(x=>({name:x.name,qty:x.qty,color:x.color,makerworldId:x.makerworldId||null}))})
       });
       const d=await r.json().catch(()=>({}));
       if(!r.ok||!d.id) throw new Error(d.error||'Could not start checkout. Please try again.');
@@ -121,8 +121,36 @@ function openMystery(){document.getElementById("mysteryModal").classList.add("op
 function chooseMystery(price){alert("Mystery Box selected: $"+price+" 🎁\nPayment: PayPal Sandbox test.\nWe'll connect this to the real order form next!")}
 document.querySelectorAll(".modal").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)m.classList.remove("open")}));
 render();updateCart();updateSchoolBanner();setInterval(updateSchoolBanner,30000);
-async function loadHotItems(){const status=document.getElementById("hot-status"),grid=document.getElementById("hot-grid");try{const r=await fetch("/.netlify/functions/makerworld-hot-items");const d=await r.json();if(!r.ok||!Array.isArray(d.models))throw new Error(d.error||"Could not load MakerWorld items.");grid.innerHTML=d.models.slice(0,6).map(m=>{const title=String(m.title||"MakerWorld model"),url=String(m.url||"https://makerworld.com").replaceAll('"',"&quot;"),cover=String(m.cover||"").replaceAll('"',"&quot;"),creator=String(m.creator?.name||m.creator?.handle||"MakerWorld creator"),downloads=Number(m.downloads||0).toLocaleString();return '<article class="hot-card"><a href="'+url+'" target="_blank" rel="noopener"><img src="'+cover+'" alt="'+title.replaceAll('"',"&quot;")+'" loading="lazy"></a><div class="hot-body"><h3>'+title+'</h3><div class="hot-meta">⬇️ '+downloads+' downloads<br>👨‍🎨 '+creator+'</div><a class="hot-link" href="'+url+'" target="_blank" rel="noopener">View on MakerWorld ↗</a></div></article>';}).join("");status.textContent=d.models.length?"Top "+Math.min(6,d.models.length)+" most-downloaded new models • Updated "+new Date(d.fetched_at||Date.now()).toLocaleDateString():"No matching models found this week."; }catch(e){status.textContent="MakerWorld Hot Items are temporarily unavailable. Please check back soon.";console.error("MakerWorld feed:",e);}}
-loadHotItems();
+async function addHotItemToCart(index){
+  const item=window.hotItems?.[index];
+  if(!item)return;
+  const key="makerworld:"+item.id;
+  const existing=cart.find(x=>x.key===key);
+  if(existing)existing.qty++;
+  else cart.push({key,name:item.title,price:item.price,pic:"🖨️",color:"PLA • single color",qty:1,lead:Math.max(1,Math.ceil(item.printMinutes/1440)+1),makerworldId:String(item.id),hotItem:true});
+  updateCart();openCart();
+}
+function escapeHot(value){return String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+async function loadHotItems(){
+ const status=document.getElementById("hot-status"),grid=document.getElementById("hot-grid");
+ try{
+  const r=await fetch("/.netlify/functions/makerworld-hot-items");
+  const d=await r.json();
+  if(!r.ok||!Array.isArray(d.models))throw new Error(d.error||"Could not load Hot Items.");
+  window.hotItems=d.models.slice(0,8);
+  grid.innerHTML=window.hotItems.map((m,i)=>{
+   const title=escapeHot(m.title),cover=escapeHot(m.cover),creator=escapeHot(m.creator?.name||m.creator?.handle||"MakerWorld creator");
+   const time=m.printMinutes>=60?(m.printMinutes/60).toFixed(1)+" hr":m.printMinutes+" min";
+   return '<article class="hot-card"><img src="'+cover+'" alt="'+title+'" loading="lazy"><div class="hot-body"><h3>'+title+'</h3><div class="hot-meta">⬇️ '+Number(m.downloads||0).toLocaleString()+' downloads<br>👨‍🎨 '+creator+'<br>⏱️ '+time+' • '+Number(m.weightGrams).toFixed(1)+'g PLA<br>💵 '+(';
+</script>
+</body>
+</html>
++Number(m.price).toFixed(0))+' • estimated price</div><button class="hot-link" type="button" onclick="addHotItemToCart('+i+')">Order This Print</button></div></article>';
+  }).join("");
+  status.textContent=window.hotItems.length?"Up to 8 eligible X2D PLA prints • Prices include filament, estimated electricity + 50% • Updated "+new Date(d.fetched_at||Date.now()).toLocaleDateString():"No eligible commercial-use X2D PLA models were found this week.";
+ }catch(e){status.textContent="Hot Items are temporarily unavailable. Please check back soon.";console.error("MakerWorld feed:",e);}
+}
+loadHotItems();;
 </script>
 </body>
 </html>
