@@ -20,7 +20,7 @@ async function verifiedHotItem(id){
  const url=new URL("https://api.api.sh/makerworld/v1/model");url.searchParams.set("id",String(id));
  const r=await fetch(url.toString(),{headers:{"x-api-key":key},signal:AbortSignal.timeout(20000)});
  const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error("Could not verify a Hot Item. Refresh the page and try again.");
- const m=d.model||d,license=String(m.license||"").toUpperCase().replace(/^CC[-_]?/,"");
+ const m=d.model||d,license=String(m.license||"").toUpperCase().replace(/^CC-/,"");
  if(!m.id||!ALLOWED_LICENSES.has(license))throw new Error("This model is not approved for commercial physical-print sales.");
  const profiles=Array.isArray(m.print_profiles)?m.print_profiles:[];
  const p=profiles.find(x=>x.printer?.printer_code==="N6"&&Array.isArray(x.filaments)&&x.filaments.length>0&&x.filaments.every(f=>String(f.type||"").toUpperCase().includes("PLA"))&&Number(x.colors||x.filaments.length)===1&&Number(x.weight_grams)>0&&Number(x.print_seconds)>0);
