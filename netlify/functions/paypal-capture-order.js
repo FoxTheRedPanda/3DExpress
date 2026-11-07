@@ -44,7 +44,7 @@ exports.handler=async(event)=>{
     let emailSent=false, emailWarning="";
     const apiKey=process.env.RESEND_API_KEY, from=process.env.ORDER_FROM_EMAIL;
     if(apiKey&&from) {
-      const recipients=["fleet@fleetlentz.com"];
+      const recipients=["fleetlentz@outlook.com"];
       if(payerEmail) recipients.push(payerEmail);
       try { await sendReceipt({apiKey,from,to:recipients,subject:"3D Express order received — "+orderID,html}); emailSent=true; }
       catch(e) { console.error("Order receipt email failed:",e); emailWarning="Payment completed, but the receipt email could not be sent."; }
