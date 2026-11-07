@@ -71,7 +71,50 @@ const colorOptions=["⚫ Black","⚪ White","🔴 Red","🔵 Blue","🟢 Green",
 function addToCart(i){const p=products[i],mainColor=document.getElementById("color-"+i).value,accentColor=document.getElementById("accent-"+i).value,color=accentColor?mainColor+" + "+accentColor:mainColor,key=p[0]+"|"+color,found=cart.find(x=>x.key===key);if(found)found.qty++;else cart.push({key,name:p[0],price:parseFloat(p[2].replace("$","")),pic:p[4],color,qty:1,lead:p[6]});updateCart();openCart()}
 function updateCart(){document.getElementById("cartCount").textContent=cart.reduce((s,x)=>s+x.qty,0);const box=document.getElementById("cartItems"),sum=document.getElementById("summary");if(!cart.length){box.innerHTML='<div class="empty">Your cart is empty... for now! 😄<br>Go find something awesome.</div>';sum.innerHTML="";return}box.innerHTML=cart.map((x,i)=>`<div class="cart-item"><div class="cart-img">${x.pic}</div><div class="cart-info"><h3>${x.name}</h3><div class="mini">🎨 ${x.color} • $${x.price.toFixed(2)} each • ⏰ ${x.lead} day lead time</div><div class="qty"><button onclick="changeQty(${i},-1)">−</button><b>${x.qty}</b><button onclick="changeQty(${i},1)">+</button></div></div><div class="item-total">$${(x.price*x.qty).toFixed(2)}<br><button class="remove" onclick="removeItem(${i})">Remove</button></div></div>`).join("");const total=cart.reduce((s,x)=>s+x.price*x.qty,0);sum.innerHTML=`<div class="mini">💵 Payment method: Payment details will be provided with your order.</div><div class="total"><span>Total</span><span>$${total.toFixed(2)}</span></div><button class="checkout" onclick="checkout()">🚀 Continue to Order</button>`}
 function changeQty(i,n){cart[i].qty+=n;if(cart[i].qty<=0)cart.splice(i,1);updateCart()}function removeItem(i){cart.splice(i,1);updateCart()}function openCart(){document.getElementById("cartModal").classList.add("open");updateCart()}function closeCart(){document.getElementById("cartModal").classList.remove("open")}
-function checkout(){const box=document.getElementById('paypal-button-container');box.innerHTML='';if(!window.paypal){document.getElementById('paypal-message').textContent='PayPal is loading. Please try again in a moment.';return;}paypal.Buttons({createOrder:async function(){const r=await fetch('/.netlify/functions/paypal-create-order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cart:cart.map(x=>({name:x.name,qty:x.qty,color:x.color}))})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Could not start checkout');return d.id;},onApprove:async function(data){const r=await fetch('/.netlify/functions/paypal-capture-order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderID:data.orderID})});const d=await r.json();if(!r.ok||d.status!=='COMPLETED')throw new Error(d.error||'Payment failed');const paidTotal=d.amount?('},onCancel:function(){document.getElementById('paypal-message').textContent='Checkout cancelled. Your cart is saved.';},onError:function(e){document.getElementById('paypal-message').textContent='PayPal error: '+e.message;}}).render('#paypal-button-container');}
+function checkout(){
+  const box=document.getElementById('paypal-button-container');
+  const message=document.getElementById('paypal-message');
+  box.innerHTML='';
+  message.textContent='';
+  if(!window.paypal){
+    message.textContent='PayPal is loading. Please try again in a moment.';
+    return;
+  }
+  paypal.Buttons({
+    createOrder:async function(){
+      const r=await fetch('/.netlify/functions/paypal-create-order',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({cart:cart.map(x=>({name:x.name,qty:x.qty,color:x.color}))})
+      });
+      const d=await r.json().catch(()=>({}));
+      if(!r.ok||!d.id) throw new Error(d.error||'Could not start checkout. Please try again.');
+      return d.id;
+    },
+    onApprove:async function(data){
+      const r=await fetch('/.netlify/functions/paypal-capture-order',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({orderID:data.orderID})
+      });
+      const d=await r.json().catch(()=>({}));
+      if(!r.ok||d.status!=='COMPLETED') throw new Error(d.error||'Payment could not be confirmed. Contact 3D Express before trying again.');
+      const paidTotal=d.amount?('$'+Number(d.amount).toFixed(2)+' '+(d.currency||'USD')):'Payment completed';
+      cart=[];
+      updateCart();
+      document.getElementById('cartModal').classList.remove('open');
+      document.getElementById('confirmation-details').innerHTML='<b>Order number:</b> '+d.id+'<br><b>Total paid:</b> '+paidTotal+'<br><b>Status:</b> COMPLETED';
+      document.getElementById('confirmation-email').textContent=d.emailSent?'A receipt was emailed to the purchaser and Fleet.':(d.emailWarning||'Your order is received. Email receipt setup is pending.');
+      document.getElementById('orderConfirmation').classList.add('open');
+    },
+    onCancel:function(){
+      message.textContent='Checkout cancelled. Your cart is saved.';
+    },
+    onError:function(e){
+      message.textContent='PayPal error: '+(e&&e.message?e.message:'Please try again.');
+    }
+  }).render('#paypal-button-container');
+}
 function openMystery(){document.getElementById("mysteryModal").classList.add("open")}function closeMystery(){document.getElementById("mysteryModal").classList.remove("open")}
 function chooseMystery(price){alert("Mystery Box selected: $"+price+" 🎁\nPayment: PayPal Sandbox test.\nWe'll connect this to the real order form next!")}
 document.querySelectorAll(".modal").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)m.classList.remove("open")}));
